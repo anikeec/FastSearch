@@ -6,6 +6,7 @@
 package com.apu.fastsearch;
 
 import java.io.BufferedOutputStream;
+import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.PrintStream;
@@ -25,8 +26,8 @@ import java.util.concurrent.Executors;
  */
 public class Main {
     
-    private static final int AMOUNT_OF_THREADS = 20;
-    private static final int QUEUE_SIZE = 20;
+    private static final int AMOUNT_OF_THREADS = 50;
+    private static final int QUEUE_SIZE = 50;
     
     public static void main(String[] args) throws InterruptedException, UnsupportedEncodingException {
         System.out.print("Enter path for search (example: D:\\):  ");
@@ -36,7 +37,14 @@ public class Main {
         String fileNameToSearch = scannerInput.nextLine();
         System.out.print("Enter string or substring for search in files (press enter if search only file names):  ");
         String strToSearch = scannerInput.nextLine();
-        String resultFileName = "searchResults.txt";        
+        String resultFileName = "searchResults.txt"; 
+        
+        File file = new File(path);
+        
+        if(!file.exists())  {
+            System.out.println("Error!!! Path for search unavailable.");
+            return;
+        }
         
         SearchWorkersCounter swc = new SearchWorkersCounter();
         BlockingQueue<FileObject> queue = new ArrayBlockingQueue(QUEUE_SIZE, true);
@@ -54,15 +62,18 @@ public class Main {
         while (true) { 
             if(!queue.isEmpty()) {
                 fobj = queue.take();
-                list.add(fobj.getPath());           
+                list.add(fobj.getPath());
+                System.out.println(fobj.toString());
             }
             if(swc.getAmount() == 0)    break;
         }
         
-        PrintStream  sourceOutputStream = System.out;
-        
+        PrintStream  sourceOutputStream = System.out;        
+        PrintStream  newPrintStream = null;
         try {
-            System.setOut(new PrintStream(new BufferedOutputStream(new FileOutputStream(resultFileName))));
+            newPrintStream = 
+                new PrintStream(new BufferedOutputStream(new FileOutputStream(resultFileName)));
+            System.setOut(newPrintStream);
         } catch (FileNotFoundException ex) {
             System.setOut(sourceOutputStream);
             System.out.println("Error - can't write to output file");            
@@ -75,7 +86,12 @@ public class Main {
         Collections.sort(list);
         for(String str : list) {
             System.out.println(str);
-        }   
+        } 
+        
+        if(newPrintStream != null) {
+                newPrintStream.flush();
+                newPrintStream.close();
+        }
         
         exService.shutdown();
         System.setOut(sourceOutputStream);
